@@ -3,7 +3,7 @@
 openapi: '3.0.3'
 info:
   title: "Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard"
-  version: "3.6.0"
+  version: "3.7.0"
   description: |
     ## Overview 
     ![Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard context diagram](https://digital.nhs.uk/binaries/content/gallery/website/developer/api-catalogue/patient-care-aggregator-fhir-api/patient-care-aggregator-get-appointments-api-standard.svg?raw=true)
@@ -366,11 +366,8 @@ components:
           type: array
           items:
             anyOf: 
-              - description: "Appointment priority (optional)."
+              - description: "Appointment priority."
                 type: object
-                required:
-                  - url
-                  - valueCoding
                 properties:
                   url:
                     type: string
@@ -443,7 +440,7 @@ components:
           type: array
           items:
             anyOf:
-              - description: "The ID of the Appointment in its source PAS system database (optional)"                        
+              - description: "The ID of the Appointment in its source PAS system database."                        
                 type: object
                 properties:                               
                   system:
@@ -454,7 +451,7 @@ components:
                     description: "The ID of the Appointment in its source database (e.g. a Trust PAS system)"
                     type: string
                     example: "4817508"
-              - description: "The ID of the Appointment in your Patient Portal database. (optional)"
+              - description: "The ID of the Appointment in your Patient Portal database."
                 type: object
                 properties:                       
                   system:
@@ -469,7 +466,7 @@ components:
           type: array
           minItems: 1
           maxItems: 1
-          description: "NHS Specialty (required)"
+          description: "NHS Specialty."
           items:
             oneOf:
               - type: object
@@ -494,7 +491,7 @@ components:
                               type: string
                               example: "DERMATOLOGY"
         status:
-          description: "The actual appointment booking status as reported by the source Trust PAS system (required)"
+          description: "The actual appointment booking status as reported by the source Trust PAS system."
           type: string
           enum:
             - booked
@@ -502,7 +499,7 @@ components:
             - cancelled
             - noshow
         description:
-          description: "The patient-friendly standardised description/title of the appointment that would be appropriate to display to a patient. Note, this value should match that displayed in your own user interface. This should be structured {Specialty name}, but does not have to adhere strictly to the NHS Data Dictionary lists for Specialty/Treatment Function.  Note the values presented within this field are required to be be provided for Data Quality Assurance. (required) (warning) For pre-assessments, this should be explicitly 'Pre-assessment appointment'"
+          description: "The patient-friendly standardised description/title of the appointment that would be appropriate to display to a patient. Note, this value should match that displayed in your own user interface. This should be structured {Specialty name}, but does not have to adhere strictly to the NHS Data Dictionary lists for Specialty/Treatment Function.  Note the values presented within this field are required to be be provided for Data Quality Assurance. (warning) For pre-assessments, this should be explicitly 'Pre-assessment appointment'"
           type: string
           example: "Orthopaedics Appointment"
         appointmentType:
@@ -534,7 +531,7 @@ components:
                           - "ambulatory"
                           - "home health"
         start:
-          description: "Start date/time of appointment in a UTC format (required)"
+          description: "Start date/time of appointment in a UTC format."
           type: string
           example: "2021-06-13T12:30:00+00:00"
         end:
@@ -542,7 +539,7 @@ components:
           type: string
           example: "2021-06-13T12:45:00+00:00"
         slot:
-          description: "Unique Slot Reference Number and source PAS database slot ID (optional)"
+          description: "Unique Slot Reference Number and source PAS database slot ID."
           type: array
           items: 
             anyOf:
@@ -573,7 +570,7 @@ components:
                         example: "65468756"
         basedOn:
           type: array
-          description: "The ReferralID, UBRN or PathwayID to which this appointment is linked (optional)"                    
+          description: "The ReferralID, UBRN or PathwayID to which this appointment is linked."                    
           items:
             type: object
             properties:
@@ -993,10 +990,10 @@ components:
           properties:
             start:
               type: string
-              description: "Document effective date/time in a UTC format (required)"
+              description: "Document effective date/time in a UTC format."
               example: "2021-06-13T12:30:00+00:00"
         date:
-          description: "When this document reference was created in a UTC format (required)"
+          description: "When this document reference was created in a UTC format."
           type: string
           example: "2021-06-13T12:30:00+00:00"
         custodian:
@@ -1028,7 +1025,7 @@ components:
               type: string
               example: Barnsley Hospital NHS Foundation Trust
         description:
-          description: "The patient-friendly standardised description/title of the document that would be appropriate to display to a patient. Note, this value should match that displayed in your own user interface. This should be structured {Specialty name} {Document type}, but does not have to adhere strictly to the NHS Data Dictionary lists for Specialty/Treatment Function. Note the values presented within this field are required to be provided for Data Quality Assurance. (required)"
+          description: "The patient-friendly standardised description/title of the document that would be appropriate to display to a patient. Note, this value should match that displayed in your own user interface. This should be structured {Specialty name} {Document type}, but does not have to adhere strictly to the NHS Data Dictionary lists for Specialty/Treatment Function. Note the values presented within this field are required to be provided for Data Quality Assurance."
           type: string
           example: Dermatology cancellation letter
         content:
@@ -1081,7 +1078,7 @@ components:
           example: "3a146c43-2b21-44e9-95bc-6f4849e504c8"
         identifier:
           type: object
-          description: "The ID of the task in your Patient Portal database. (optional)"
+          description: "The ID of the task in your Patient Portal database."
           required:
             - system
             - value
@@ -1095,7 +1092,7 @@ components:
               type: string
               example: "3a146c43-2b21-44e9-95bc-6f4849e504c8"
         basedOn:
-          description: "CarePlan reference to the Pathway this questionnaire relates to. (optional)"
+          description: Reference to the related CarePlan (Pathway). This reference should contain the pathway ID. This field is required for PIFU questionnaires to identify duplicate entries and is optional for other questionnaire types.
           type: array
           minItems: 0
           maxItems: 1
@@ -1141,12 +1138,12 @@ components:
           enum:
             - plan
         description:
-          description: "The patient-friendly standardised description/title of the questionnaire that would be appropriate to display to a patient. Note, this value should match that displayed in your own user interface. This should be structured {Specialty name} {Questionnaire type}, but does not have to adhere strictly to the NHS Data Dictionary lists for Specialty/Treatment Function. Note the values presented within this field are required to be provided for Data Quality Assurance. (required)"
+          description: "The patient-friendly, standardised title of the questionnaire that is suitable for display to patients. This value should match the name shown in your own interface and should follow the structure {Specialty name} {Questionnaire type}. If the questionnaire is linked to an appointment, the specialty should align with that appointment. For Patient Initiated Follow-Up (PIFU) questionnaires, the questionnaire type should not be included. The values presented within this field are required to be provided for Data Quality Assurance."
           type: string
           example: Dermatology pre-assessment questionnaire
         focus:
           type: object
-          description: Appointment reference to the appointments this questionnaire relates to. (Optional)
+          description: Appointment reference to the appointments this questionnaire relates to.
           required:
             - type
             - reference
@@ -1189,8 +1186,23 @@ components:
                   example: "9123456789"
         authored:
           type: string
-          description: Date the questionnaire was first made available to a patient in a UTC format (required)
+          description: Date the questionnaire was first made available to a patient in a UTC format.
           example: "2021-06-13T12:30:00+00:00"
+        lastModified:
+          type: string
+          description: Records the date and time (UTC) the questionnaire was completed by the patient. For Patient Initiated Follow-up (PIFU) feature, this field represents the date and time the patient last requested a follow-up appointment, and applies only to that individual PIFU request. This date must be greater than or equal to authored date.
+          example: "2025-08-28T12:30:00+00:00"
+        restriction:
+          type: object
+          description: Constraints on the questionnaire.
+          properties:
+            period: 
+              type: object
+              properties:
+                end:
+                  type: string
+                  description: Indicates the end date for the questionnaire. For the Patient Initiated Follow-up (PIFU) feature, this represents the expiration date of the questionnaire. After this date has passed, the patient can no longer raise a follow-up request.
+                  example: "2025-10-18T12:30:00+00:00"
         reasonReference:
           type: object
           description: Reference to the Questionnaire being requested.
@@ -1200,7 +1212,7 @@ components:
           properties:
             type: 
               type: string
-              description: Questionnaire  FHIR Resource
+              description: Questionnaire FHIR Resource
               enum:
                 - "Questionnaire"
             reference: 
@@ -1239,7 +1251,7 @@ components:
               example: Barnsley Hospital NHS Foundation Trust
         reasonCode:
           type: object
-          description: Reason for the Task, the request for a patient to complete a Questionnaire.]
+          description: Reason for the Task, the request for a patient to complete a Questionnaire.
           required:
             - coding
             - text
