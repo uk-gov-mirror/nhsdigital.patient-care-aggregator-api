@@ -385,28 +385,48 @@ components:
               type: string
               example: 2023-10-03
             extension:
-              description: FHIR extension wrapper.
+              description: FHIR extension wrapper for MPC wait time data.
               type: array
               items:
-                description: Pathway of care Identifier
-                type: object
-                properties:
-                  url:
-                    description: FHIR extension type for the planned wait time.
-                    type: string
-                    example: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
-                  valueDuration:
-                    description: The planned wait time itself.
+                anyOf:
+                  - description: MPC planned mean average wait time.
                     type: object
                     properties:
-                      value:
-                        description: The planned wait time value.
+                      url:
+                        description: FHIR extension type for the planned mean average wait time.
                         type: string
-                        example: 22
-                      unit:
-                        description: The planned wait time unit.
-                        type: number
-                        example: weeks
+                        example: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                      valueDuration:
+                        description: The planned mean average wait time itself.
+                        type: object
+                        properties:
+                          value:
+                            description: The planned mean average wait time value.
+                            type: string
+                            example: 16
+                          unit:
+                            description: The planned mean average wait time unit.
+                            type: number
+                            example: weeks
+                  - description: MPC 80th percentile wait time data
+                    type: object
+                    properties:
+                      url:
+                        description: FHIR extension type for the 80th percentile wait time.
+                        type: string
+                        example: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                      valueDuration:
+                        description: The planned 80th percentile wait time itself.
+                        type: object
+                        properties:
+                          value:
+                            description: The planned 80th percentile wait time value.
+                            type: string
+                            example: 20
+                          unit:
+                            description: The planned 80th percentile wait time unit.
+                            type: number
+                            example: weeks
         author:
           description: The organisation responsible for the pathway of care. This is mandatory for Waiting List (CarePlans).
           type: object
@@ -5184,7 +5204,7 @@ components:
                 valueCode: nhs-waiting-list-01
     # Waiting Lists
     pathwayActiveEstimatedWait:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time
+      summary: Fragment - Active Waiting List (Pathway) with estimated mean average and 80th percentile wait times
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5212,6 +5232,10 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
             identifier:
@@ -5219,7 +5243,7 @@ components:
               value: 'R1F'
             display: Isle of Wight NHS Trust
     pathwayActiveNoEstimatedWait:
-      summary: Fragment - Active Waiting List (Pathway) without an estimated wait time
+      summary: Fragment - Active Waiting List (Pathway) without estimated wait times
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RAX~ABC220343220X
         search:
@@ -5285,7 +5309,7 @@ components:
             - $ref: "#/components/examples/appointmentFuturePepBooked"
             - $ref: "#/components/examples/correspondenceUnreadLinked"
     pathwayActivePendingReferral:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time and pending referral
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times and pending referral
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5313,6 +5337,10 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
             identifier:
@@ -5322,7 +5350,7 @@ components:
           activity:
             - $ref: "#/components/examples/referralActiveBookable"
     pathwayActiveReferralUpcomingAppointment:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral and upcoming appointment
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral and upcoming appointment
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5349,6 +5377,10 @@ components:
               - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
                 valueDuration:
                   value: 22
+                  unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
                   unit: "weeks"
           author:
             type: Organization
@@ -5360,7 +5392,7 @@ components:
             - $ref: "#/components/examples/referralHistoric"
             - $ref: "#/components/examples/appointmentFutureErsFaceToFace"
     pathwayActiveReferralAppointmentHistoricAttended:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral and attended appointment
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral and attended appointment
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5388,6 +5420,10 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
             identifier:
@@ -5398,7 +5434,7 @@ components:
             - $ref: "#/components/examples/referralHistoric"
             - $ref: "#/components/examples/appointmentHistoricPepAttended"
     pathwayActiveReferralAppointmentHistoricCancelled:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral and cancelled appointment with correspondence
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral and cancelled appointment with correspondence
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5425,6 +5461,10 @@ components:
               - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
                 valueDuration:
                   value: 22
+                  unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
                   unit: "weeks"
           author:
             type: Organization
@@ -5437,7 +5477,7 @@ components:
             - $ref: "#/components/examples/appointmentHistoricPepCancelled"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentHistoricDNA:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral, Did not attend appointment and correspondence
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral, Did not attend appointment and correspondence
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5465,6 +5505,10 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
             identifier:
@@ -5476,7 +5520,7 @@ components:
             - $ref: "#/components/examples/appointmentHistoricPepDNA"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentUpcomingDiagnostic:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referal, appointments with correspondence and upcoming diagnostic
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referal, appointments with correspondence and upcoming diagnostic
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5503,6 +5547,10 @@ components:
               - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
                 valueDuration:
                   value: 22
+                  unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
                   unit: "weeks"
           author:
             type: Organization
@@ -5519,7 +5567,7 @@ components:
             - $ref: "#/components/examples/diagnosticFuturePepBooked"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentHistoricDiagnostic:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referal, appointments with correspondence and historic diagnostic
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referal, appointments with correspondence and historic diagnostic
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5547,6 +5595,10 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
             identifier:
@@ -5562,7 +5614,7 @@ components:
             - $ref: "#/components/examples/diagnosticHistoricPepAttended"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentDiagnosticUpcomingAdmission:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral, appointment with correspondence and upcoming admission
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral, appointment with correspondence and upcoming admission
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5589,6 +5641,10 @@ components:
               - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
                 valueDuration:
                   value: 22
+                  unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
                   unit: "weeks"
           author:
             type: Organization
@@ -5606,7 +5662,7 @@ components:
             - $ref: "#/components/examples/inpatientFuturePepBooked"
             - $ref: "#/components/examples/questionnaireCompleteUnlinked"
     pathwayActiveReferralAppointmentDiagnosticAdmissionPostTreatmentFollowUp:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral, appointments with correspondence, diagnostic, admission and post treatment follow up
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral, appointments with correspondence, diagnostic, admission and post treatment follow up
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -5633,6 +5689,10 @@ components:
               - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
                 valueDuration:
                   value: 22
+                  unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
                   unit: "weeks"
           author:
             type: Organization
