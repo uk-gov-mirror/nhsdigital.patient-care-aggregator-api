@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Wayfinder Patient Care Aggregator API
-  version: v2.0.4
+  version: v3.7.0
   description: |
     <div class="nhsd-m-emphasis-box nhsd-m-emphasis-box--emphasis nhsd-!t-margin-bottom-6" aria-label="Highlighted Information">
         <div class="nhsd-a-box nhsd-a-box--border-blue">
@@ -26,7 +26,7 @@ info:
     
     The API aggregates details of referrals and bookings from a number of systems. For details, see [status and roadmap](https://digital.nhs.uk/developer/guides-and-documentation/building-healthcare-software/referrals-and-bookings/patient-care-aggregator#status-and-roadmap).
     
-    We might add other providers in the future. 
+    We might add other providers in the future.
     
     This API is only for use in patient-facing applications, not point-of-care applications.
     
@@ -206,6 +206,11 @@ components:
           description: Metadata about the resource
           type: object
           properties:
+            versionId:
+              type: string
+              pattern: '^[A-Za-z0-9\-\.]{1,64}$'
+              description: FHIR id string representing the version of the resource
+              example: "1.0.0"
             profile:
               description: Profiles this resource claims to conform to
               type: array
@@ -380,28 +385,48 @@ components:
               type: string
               example: 2023-10-03
             extension:
-              description: FHIR extension wrapper.
+              description: FHIR extension wrapper for MPC wait time data.
               type: array
               items:
-                description: Pathway of care Identifier
-                type: object
-                properties:
-                  url:
-                    description: FHIR extension type for the planned wait time.
-                    type: string
-                    example: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
-                  valueDuration:
-                    description: The planned wait time itself.
+                anyOf:
+                  - description: MPC planned mean average wait time.
                     type: object
                     properties:
-                      value:
-                        description: The planned wait time value.
+                      url:
+                        description: FHIR extension type for the planned mean average wait time.
                         type: string
-                        example: 22
-                      unit:
-                        description: The planned wait time unit.
-                        type: number
-                        example: weeks
+                        example: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                      valueDuration:
+                        description: The planned mean average wait time itself.
+                        type: object
+                        properties:
+                          value:
+                            description: The planned mean average wait time value.
+                            type: number
+                            example: 16
+                          unit:
+                            description: The planned mean average wait time unit.
+                            type: string
+                            example: weeks
+                  - description: MPC 80th percentile wait time data
+                    type: object
+                    properties:
+                      url:
+                        description: FHIR extension type for the 80th percentile wait time.
+                        type: string
+                        example: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                      valueDuration:
+                        description: The planned 80th percentile wait time itself.
+                        type: object
+                        properties:
+                          value:
+                            description: The planned 80th percentile wait time value.
+                            type: number
+                            example: 20
+                          unit:
+                            description: The planned 80th percentile wait time unit.
+                            type: string
+                            example: weeks
         author:
           description: The organisation responsible for the pathway of care. This is mandatory for Waiting List (CarePlans).
           type: object
@@ -411,10 +436,20 @@ components:
               type: string
               enum:
                 - Organization
+            identifier:
+              type: object
+              properties:
+                system:
+                  type: string
+                  enum:
+                    - "https://fhir.nhs.uk/Id/ods-organization-code"
+                value:
+                  type: string
+                  example: "R1F"
             display:
               description: ODS Organisation name (NHS Trust)
               type: string
-              example: Isle of Wight NHS TrusT
+              example: Isle of Wight NHS Trust
         activity:
           description: Array of referral, appointments, documents and questionnaires related to the patients care.
           type: array
@@ -595,12 +630,26 @@ components:
                 required:
                   - type
                   - display
+                  - identifier
                 properties:
                   type:
                     description: Type of entity.
                     type: string
                     enum:
                       - Organization
+                  identifier:
+                    type: object
+                    required:
+                      - system
+                      - value
+                    properties:
+                      system:
+                        type: string
+                        enum:
+                        - "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value:
+                        type: string
+                        example: "RTD"
                   display:
                     description: ODS Organisation name (NHS Trust)
                     type: string
@@ -737,7 +786,7 @@ components:
                         enum:
                           - https://fhir.nhs.uk/StructureDefinition/Extension-Encounter-Class
                       valueCode:
-                        description: "The encounter class required itself."
+                        description: The encounter class required itself.
                         type: string
                         enum:
                           - outpatient
@@ -774,6 +823,41 @@ components:
                   description: Plain text location of the entity.
                   type: string
                   example: St Stephen's Hospital
+            performer:
+              description: The organisation responsible for the Appointment. 
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                description: The organisation the appointment is at.
+                type: object
+                required:
+                  - type
+                  - display
+                  - identifier
+                properties:
+                  type:
+                    description: Type of entity.
+                    type: string
+                    enum:
+                      - Organization
+                  identifier:
+                    type: object
+                    required:
+                      - system
+                      - value
+                    properties:
+                      system:
+                        type: string
+                        enum:
+                        - "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value:
+                        type: string
+                        example: "RTD"
+                  display:
+                    description: ODS Organisation name (NHS Trust)
+                    type: string
+                    example: THE NEWCASTLE UPON TYNE HOSPITALS NHS FOUNDATION TRUST
     Document:
       description: A summary of the document for the patient.
       type: object
@@ -894,6 +978,41 @@ components:
                   description: The effective date of the Document i.e. the date the document was created/first available to the patient. This should match the date contained within the document.
                   type: string
                   example: '2022-06-02T09:25:13.000Z'
+            performer:
+              description: The organisation responsible for the Document. 
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                description: The organisation the document originates from.
+                type: object
+                required:
+                  - type
+                  - display
+                  - identifier
+                properties:
+                  type:
+                    description: Type of entity.
+                    type: string
+                    enum:
+                      - Organization
+                  identifier:
+                    type: object
+                    required:
+                      - system
+                      - value
+                    properties:
+                      system:
+                        type: string
+                        enum:
+                        - "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value:
+                        type: string
+                        example: "RTD"
+                  display:
+                    description: ODS Organisation name (NHS Trust)
+                    type: string
+                    example: THE NEWCASTLE UPON TYNE HOSPITALS NHS FOUNDATION TRUST
     Questionnaire:
       description: A summary of the questionnaire for the patient.
       type: object
@@ -984,6 +1103,45 @@ components:
                           reference:
                             type: string
                             example: Appointment/caa99978-05ab-4473-8280-e77ebfe797c4
+                  - description: FHIR extension for Questionnaire type coding
+                    type: object
+                    required:
+                      - url
+                      - valueCoding
+                    properties:
+                      url:
+                        type: string
+                        enum:
+                          - https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                        description: Extension URL indicating the type of Questionnaire.
+                      valueCoding:
+                        type: object
+                        required:
+                          - system
+                          - code
+                        properties:
+                          system:
+                            type: string
+                            enum:
+                              - https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                          code:
+                            type: string
+                            example: pifu-triage
+                  - description: FHIR extension for Questionnaire response last modified date
+                    type: object
+                    required:
+                      - url
+                      - valueDate
+                    properties:
+                      url:
+                        description: Extension URL for the Questionnaire response last modified date.
+                        type: string
+                        enum:
+                          - https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                      valueDate:
+                        description: The date that this questionnaire response was last modified by the user.
+                        type: string
+                        example: '2025-06-23'
             description:
               description: Description of the questionnaire to be displayed to the patient. _Note; this is freetext and can contain some data quality issues._
               type: string
@@ -995,9 +1153,48 @@ components:
                 - start
               properties:
                 start:
-                  description: The effective date of the questionnaire i.e. the date the questionnaire was first available to the patient to complete.
+                  description: The effective start date of the questionnaire i.e. the date the questionnaire was first available to the patient to complete.
                   type: string
-                  example: '2022-06-02T18:00:00.000Z'
+                  example: '2025-06-20T18:00:00.000Z'
+                end:
+                  description: The effective end date of the questionnaire i.e. the date the questionnaire expires for the patient to complete.
+                  type: string
+                  example: '2025-12-20T00:00:00.000Z'
+            performer:
+              description: The organisation responsible for the Questionnaire. 
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                description: The organisation the questionnaire is from.
+                type: object
+                required:
+                  - type
+                  - display
+                  - identifier
+                properties:
+                  type:
+                    description: Type of entity.
+                    type: string
+                    enum:
+                      - Organization
+                  identifier:
+                    type: object
+                    required:
+                      - system
+                      - value
+                    properties:
+                      system:
+                        type: string
+                        enum:
+                        - "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value:
+                        type: string
+                        example: "RTD"
+                  display:
+                    description: ODS Organisation name (NHS Trust)
+                    type: string
+                    example: THE NEWCASTLE UPON TYNE HOSPITALS NHS FOUNDATION TRUST
     OperationOutcome:
       description: A FHIR `OperationOutcome` resource containing details of the issues that have occurred.
       type: object
@@ -1355,6 +1552,27 @@ components:
               $ref: "#/components/examples/questionnaireCompleteLinked"
             questionnaireCompleteUnlinked:
               $ref: "#/components/examples/questionnaireCompleteUnlinked"
+            # PIFU
+            pifuZeroWaitingListZeroPifu:
+              $ref: "#/components/examples/pifuZeroWaitingListZeroPifu"
+            pifuOneWaitingListZeroPifu:
+              $ref: "#/components/examples/pifuOneWaitingListZeroPifu"
+            pifuOneWaitingListOnePifuQuestionnaireWithMatchPepResponseError:
+              $ref: "#/components/examples/pifuOneWaitingListOnePifuQuestionnaireWithMatchPepResponseError"
+            pifuOneWaitingListOnePifuQuestionnaireWithMatchSuppressed:
+              $ref: "#/components/examples/pifuOneWaitingListOnePifuQuestionnaireWithMatchSuppressed"
+            pifuTwoWaitingListTwoPifuOneActiveAndCompleted:
+              $ref: "#/components/examples/pifuTwoWaitingListTwoPifuOneActiveAndCompleted"
+            pifuOneWaitingListOnePifuWuestionnaireWithoutMatchMultipleActivations:
+              $ref: "#/components/examples/pifuOneWaitingListOnePifuWuestionnaireWithoutMatchMultipleActivations"
+            pifuTwoWaitingListTwoPifuOneActiveWithMultipleActivationsOneMatchedOneNonPifuQuestionnaire:
+              $ref: "#/components/examples/pifuTwoWaitingListTwoPifuOneActiveWithMultipleActivationsOneMatchedOneNonPifuQuestionnaire"
+            pifuTwoWaitingListZeroPifuPepFivePifuQuestionnaires:
+              $ref: "#/components/examples/pifuTwoWaitingListZeroPifuPepFivePifuQuestionnaires"
+            pifuZeroWaitingListZeroPifuPepTimeout:
+              $ref: "#/components/examples/pifuZeroWaitingListZeroPifuPepTimeout"
+            pifuWlmdsError:
+              $ref: "#/components/examples/pifuWlmdsError"
             # Waiting Lists
             pathwayActiveEstimatedWait:
               $ref: "#/components/examples/pathwayActiveEstimatedWait"
@@ -1463,16 +1681,19 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
         total: 0
+        entry: []
     operationOutcomeBusinessRule:
       summary: 200 OperationOutcome with a business-rule issue
       value: 
         resourceType: Bundle
         id: 324ece62-ab9a-484d-b882-f401fdd2a67d
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1505,6 +1726,7 @@ components:
         resourceType: Bundle
         id: 1a432271-9aeb-4d54-8a9e-ef476e014e5b
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1538,6 +1760,7 @@ components:
         resourceType: Bundle
         id: 9c760510-89c8-4bb6-888c-339f400a1630
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1615,6 +1838,7 @@ components:
         resourceType: Bundle
         id: 0818c7bf-bd3d-4e77-b22a-c52831ff432b
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1648,6 +1872,7 @@ components:
         resourceType: Bundle
         id: 25075c73-ec31-4219-a935-2e31a5543702
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1686,6 +1911,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1706,6 +1932,7 @@ components:
         resourceType: Bundle
         id: 65185740-cc6f-4b80-98af-4da9b744ddb6
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1724,6 +1951,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1743,6 +1971,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1779,6 +2008,7 @@ components:
         resourceType: Bundle
         id: dad94def-c69e-4df1-92fb-d610a8783770
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1814,6 +2044,7 @@ components:
         resourceType: Bundle
         id: 2c74b71e-5f4f-4086-adc8-e547c816cc00
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1850,6 +2081,7 @@ components:
         resourceType: Bundle
         id: 6cc9be8c-f9c7-4c73-b41a-73ce7436fe11
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1893,6 +2125,7 @@ components:
         resourceType: Bundle
         id: ea29a536-f674-4362-92a6-70bf6f200340
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -1942,6 +2175,7 @@ components:
         resourceType: Bundle
         id: 2dda10de-2472-4f3f-ab13-480557d63d93
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -2000,6 +2234,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -2034,6 +2269,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -2067,6 +2303,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -2100,6 +2337,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -2136,6 +2374,7 @@ components:
         resourceType: Bundle
         id: c93e2449-a2ef-4476-ad15-13491036be22
         meta:
+          versionId: "3.3.4"
           profile:
             - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
         type: searchset
@@ -2298,6 +2537,9 @@ components:
             start: '2023-11-12T10:02:15.960Z'
           performer:
             - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RTD'
               display: THE NEWCASTLE UPON TYNE HOSPITALS NHS FOUNDATION TRUST
     referralActive2WW:
       summary: Fragment - Active bookable referral with suppressed specialty
@@ -2320,6 +2562,9 @@ components:
             start: '2023-08-22T12:15:36.492Z'
           performer:
             - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RAJ'
               display: MID AND SOUTH ESSEX NHS FOUNDATION TRUST
     referralActiveBookableWasCancelled:
       summary: Fragment - Active bookable referral, previously cancelled
@@ -2346,6 +2591,9 @@ components:
             start: '2024-02-14T08:45:23.932Z'
           performer:
             - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RTE'
               display: GLOUCESTERSHIRE HOSPITALS NHS FOUNDATION TRUST
     referralActiveInReviewWithDueDate:
       summary: Fragment - Active bookable referral in review with due date
@@ -2375,6 +2623,9 @@ components:
                 valueDate: '2024-08-19'
           performer:
             - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RBL'
               display: WIRRAL UNIVERSITY TEACHING HOSPITAL NHS FOUNDATION TRUST
     referralActiveInReviewWithoutDueDate:
       summary: Fragment - Active bookable referral in review without due date
@@ -2401,6 +2652,9 @@ components:
             start: '2024-03-26T13:21:01.291Z'
           performer:
             - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RYR'
               display: UNIVERSITY HOSPITALS SUSSEX NHS FOUNDATION TRUST
     referralHistoric: # Not current supported
       summary: Fragment - Historic referral
@@ -2423,6 +2677,9 @@ components:
             start: '2023-05-10T10:02:15.233Z'
           performer:
             - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RVV'
               display: EAST KENT HOSPITALS UNIVERSITY NHS FOUNDATION TRUST
     # Appointments
     appointmentFutureErsFaceToFace:
@@ -2451,6 +2708,12 @@ components:
           location:
             type: Location
             display: "Chapel Allerton Hospital, Dentistry Dept, 2nd Floor"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     appointmentFutureErsVirtual:
       summary: Fragment - Future booked Appointment from eReferral Service (eRS), virtual
       value:
@@ -2477,6 +2740,12 @@ components:
           location:
             type: Location
             display: "Birmingham City Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RRK'
+              display: UNIVERSITY HOSPITALS BIRMINGHAM NHS FOUNDATION TRUST
     appointmentFutureErs2WW:
       summary: Fragment - Future booked Appointment from eReferral Service (eRS) with suppressed specialty
       value:
@@ -2503,6 +2772,12 @@ components:
           location:
             type: Location
             display: "Florence Portal House, Winchester Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RN5'
+              display: HAMPSHIRE HOSPITALS NHS FOUNDATION TRUST
     appointmentFutureErsIndirectBooking:
       summary: Fragment - Indirectly bookable Appointment from eReferral Service (eRS)
       value:
@@ -2527,6 +2802,12 @@ components:
           location:
             type: Location
             display: "General Hepatology A&G Service-University Hospitals Sussex-E0A3H"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RYR'
+              display: UNIVERSITY HOSPITALS SUSSEX NHS FOUNDATION TRUST
     appointmentFuturePepBooked:
       summary: Fragment - Future booked Appointment from a PEP
       value:
@@ -2553,6 +2834,12 @@ components:
           location:
             type: Location
             display: "Wye Valley NHS Trust"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RLQ'
+              display: WYE VALLEY NHS TRUST
     appointmentHistoricPepAttended:
       summary: Fragment - Historic attended Appointment from a PEP
       value:
@@ -2577,6 +2864,12 @@ components:
           location:
             type: Location
             display: "Grantham Hospital Outpatients"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RWD'
+              display: UNITED LINCOLNSHIRE TEACHING HOSPITALS NHS TRUS
     appointmentHistoricPepCancelled:
       summary: Fragment - Historic cancelled Appointment from a PEP
       value:
@@ -2601,6 +2894,12 @@ components:
           location:
             type: Location
             display: "Queen Elizabeth Queen Mother Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RVV'
+              display: EAST KENT HOSPITALS UNIVERSITY NHS FOUNDATION TRUST
     appointmentFuturePepCancelled:
       summary: Fragment - Future cancelled Appointment from a PEP
       value:
@@ -2627,6 +2926,12 @@ components:
           location:
             type: Location
             display: "Basingstoke and North Hampshire Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RW1'
+              display: HAMPSHIRE AND ISLE OF WIGHT HEALTHCARE NHS FOUNDATION TRUST
     appointmentHistoricPepDNA:
       summary: Fragment - Historic no show (DNA) Appointment from a PEP
       value:
@@ -2653,6 +2958,12 @@ components:
           location:
             type: Location
             display: "The Cove Macmillan Support Centre, Royal Cornwall Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'REF'
+              display: ROYAL CORNWALL HOSPITALS NHS TRUST
     appointmentFuturePepBookedPendingCancellation:
       summary: Fragment - Future booked Appointment from a PEP, pending a cancellation
       value:
@@ -2679,6 +2990,12 @@ components:
           location:
             type: Location
             display: "Chesterfield Royal Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXM'
+              display: DERBYSHIRE HEALTHCARE NHS FOUNDATION TRUST
     appointmentFuturePepBookedPendingReschedule:
       summary: Fragment - Future booked Appointment from a PEP, pending a reschedule
       value:
@@ -2703,6 +3020,12 @@ components:
           location:
             type: Location
             display: "Rheumatology Unit, Winchester Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RN5'
+              display: HAMPSHIRE HOSPITALS NHS FOUNDATION TRUST
     appointmentFuturePepBookedPendingChange:
       summary: Fragment - Future booked Appointment from a PEP, pending a change
       value:
@@ -2727,6 +3050,12 @@ components:
           location:
             type: Location
             display: "Florence Portal House, Winchester Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RN5'
+              display: HAMPSHIRE HOSPITALS NHS FOUNDATION TRUST
     appointmentHistoricPepCancelledPendingReschedule:
       summary: Fragment - Historic cancelled Appointment from a PEP, pending a reschedule
       value:
@@ -2753,6 +3082,12 @@ components:
           location:
             type: Location
             display: "Queen Elizabeth Queen Mother Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RVV'
+              display: EAST KENT HOSPITALS UNIVERSITY NHS FOUNDATION TRUST
     appointmentFuturePepCancelledPendingReschedule:
       summary: Fragment - Future cancelled Appointment from a PEP, pending a reschedule
       value:
@@ -2780,6 +3115,12 @@ components:
           location:
             type: Location
             display: "Chesterfield Royal Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXM'
+              display: DERBYSHIRE HEALTHCARE NHS FOUNDATION TRUST
     appointmentFuturePepFaceToFace:
       summary: Fragment - Future booked Appointment from a PEP, face to face
       value:
@@ -2806,6 +3147,12 @@ components:
           location:
             type: Location
             display: "The Queen Elizabeth Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RCX'
+              display: THE QUEEN ELIZABETH HOSPITAL, KING'S LYNN, NHS FOUNDATION
     appointmentFuturePepVirtual:
       summary: Fragment - Future booked Appointment from a PEP, virtual
       value:
@@ -2832,6 +3179,12 @@ components:
           location:
             type: Location
             display: "Spinal Outpatients, Duke of Cornwall Spinal Treatment Centre, Salisbury District Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RNZ'
+              display: SALISBURY NHS FOUNDATION TRUST
     appointmentHistoricPepFaceToFace:
       summary: Fragment - Historic attended Appointment from a PEP, face to face
       value:
@@ -2858,6 +3211,12 @@ components:
           location:
             type: Location
             display: "St James Hospital, Chancellors Wing"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     appointmentHistoricPepVirtual:
       summary: Fragment - Historic attended Appointment from a PEP, virtual
       value:
@@ -2884,6 +3243,12 @@ components:
           location:
             type: Location
             display: "Surgical Outpatients, E Level, West Wing, Southampton General Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RHM'
+              display: UNIVERSITY HOSPITAL SOUTHAMPTON NHS FOUNDATION TRUST
     appointmentHistoricSusAttended:
       summary: Fragment - Historic attended Appointment from SUS
       value:
@@ -2908,6 +3273,12 @@ components:
           location:
             type: Location
             display: "Wye Valley NHS Trust"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RLQ'
+              display: WYE VALLEY NHS TRUST
     appointmentHistoricSusCancelled:
       summary: Fragment - Historic cancelled Appointment from SUS
       value:
@@ -2932,6 +3303,12 @@ components:
           location:
             type: Location
             display: "The Cove Macmillan Support Centre, Royal Cornwall Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'REF'
+              display: ROYAL CORNWALL HOSPITALS NHS TRUST
     appointmentHistoricSusDNA:
       summary: Fragment - Historic no show (DNA) Appointment from SUS
       value:
@@ -2954,6 +3331,12 @@ components:
           location:
             type: Location
             display: "Outpatient Department at Buxton Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RY8'
+              display: DERBYSHIRE COMMUNITY HEALTH SERVICES NHS FOUNDATION TRUST
     # Diagnostics
     diagnosticFuturePepBooked:
       summary: Fragment - Future booked Diagnostic Appointment from a PEP
@@ -2981,6 +3364,12 @@ components:
           location:
             type: Location
             display: "Chesterfield Royal Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXM'
+              display: DERBYSHIRE HEALTHCARE NHS FOUNDATION TRUST
     diagnosticHistoricPepAttended:
       summary: Fragment - Historic attended Diagnostic Appointment from a PEP
       value:
@@ -3007,6 +3396,12 @@ components:
           location:
             type: Location
             display: "The Queen Elizabeth Hospital"
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RCX'
+              display: THE QUEEN ELIZABETH HOSPITAL, KING'S LYNN, NHS FOUNDATION
     # Inpatients & Day cases
     inpatientFuturePepBooked:
       summary: Fragment - Future Inpatient admission, booked
@@ -3033,6 +3428,12 @@ components:
           location:
             type: Location
             display: Spinal Outpatients, Duke of Cornwall Spinal Treatment Centre, Salisbury District Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RNZ'
+              display: SALISBURY NHS FOUNDATION TRUST
     inpatientFuturePepBookedPendingCancellation:
       summary: Fragment - Future Inpatient admission, booked pending cancellation
       value:
@@ -3058,6 +3459,12 @@ components:
           location:
             type: Location
             display: Spinal Outpatients, Duke of Cornwall Spinal Treatment Centre, Salisbury District Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RNZ'
+              display: SALISBURY NHS FOUNDATION TRUST
     inpatientFuturePepBookedPendingReschedule:
       summary: Fragment - Future Inpatient admission, booked pending reschedule
       value:
@@ -3083,6 +3490,12 @@ components:
           location:
             type: Location
             display: Florence Portal House, Winchester Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RN5'
+              display: HAMPSHIRE HOSPITALS NHS FOUNDATION TRUST
     inpatientFuturePepBookedPendingChange:
       summary: Fragment - Future Inpatient admission, booked pending change
       value:
@@ -3108,6 +3521,12 @@ components:
           location:
             type: Location
             display: Florence Portal House, Winchester Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RN5'
+              display: HAMPSHIRE HOSPITALS NHS FOUNDATION TRUST
     inpatientFuturePepCancelled:
       summary: Fragment - Future Inpatient admission, cancelled
       value:
@@ -3133,6 +3552,12 @@ components:
           location:
             type: Location
             display: St James Hospital, Chancellors Wing
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     inpatientFuturePepCancelledPendingReschedule:
       summary: Fragment - Future Inpatient admission, cancelled pending reschedule
       value:
@@ -3158,6 +3583,12 @@ components:
           location:
             type: Location
             display: Florence Portal House, Winchester Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RN5'
+              display: HAMPSHIRE HOSPITALS NHS FOUNDATION TRUST
     daycaseFuturePepBooked:
       summary: Fragment - Future Day Case attendance, booked
       value:
@@ -3183,6 +3614,12 @@ components:
           location:
             type: Location
             display: Grantham Hospital Outpatients
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RWD'
+              display: UNITED LINCOLNSHIRE TEACHING HOSPITALS NHS TRUST
     daycaseFuturePepBookedPendingCancellation:
       summary: Fragment - Future Day Case attendance, booked pending cancellation
       value:
@@ -3208,6 +3645,12 @@ components:
           location:
             type: Location
             display: The Cove Macmillan Support Centre, Royal Cornwall Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'REF'
+              display: ROYAL CORNWALL HOSPITALS NHS TRUST
     daycaseFuturePepBookedPendingReschedule:
       summary: Fragment - Future Day Case attendance, booked pending reschedule
       value:
@@ -3233,6 +3676,12 @@ components:
           location:
             type: Location
             display: Birmingham City Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RRK'
+              display: UNIVERSITY HOSPITALS BIRMINGHAM NHS FOUNDATION TRUST
     daycaseFuturePepBookedPendingChange:
       summary: Fragment - Future Day Case attendance, booked pending change
       value:
@@ -3258,6 +3707,12 @@ components:
           location:
             type: Location
             display: Queen Elizabeth Queen Mother Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RVV'
+              display: EAST KENT HOSPITALS UNIVERSITY NHS FOUNDATION TRUST
     daycaseFuturePepCancelled:
       summary: Fragment - Future Day Case attendance, cancelled
       value:
@@ -3283,6 +3738,12 @@ components:
           location:
             type: Location
             display: Chapel Allerton Hospital, Dentistry Dept, 2nd Floor
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     daycaseFuturePepCancelledPendingReschedule:
       summary: Fragment - Future Day Case attendance, cancelled pending reschedule
       value:
@@ -3308,6 +3769,12 @@ components:
           location:
             type: Location
             display: Munro Unit, St. Richards Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RYR'
+              display: UNIVERSITY HOSPITALS SUSSEX NHS FOUNDATION TRUST
     inpatientHistoricPepAttended:
       summary: Fragment - Historic Inpatient admission, attended
       value:
@@ -3333,6 +3800,12 @@ components:
           location:
             type: Location
             display: St James Hospital, Chancellors Wing
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     inpatientHistoricPepCancelled:
       summary: Fragment - Historic Inpatient admission, cancelled
       value:
@@ -3358,6 +3831,12 @@ components:
           location:
             type: Location
             display: Spinal Outpatients, Duke of Cornwall Spinal Treatment Centre, Salisbury District Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RNZ'
+              display: SALISBURY NHS FOUNDATION TRUST
     inpatientHistoricPepCancelledPendingReschedule:
       summary: Fragment - Historic Inpatient admission, cancelled pending reschedule
       value:
@@ -3383,6 +3862,12 @@ components:
           location:
             type: Location
             display: St James Hospital, Chancellors Wing
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     daycaseHistoricPepAttended:
       summary: Fragment - Historic Day Case attendance, attended
       value:
@@ -3407,7 +3892,13 @@ components:
             end: '2022-11-14T17:00:00.000Z'
           location:
             type: Location
-            display: Darton Health Centre
+            display: St James Hospital, Chancellors Wing
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RR8'
+              display: LEEDS TEACHING HOSPITALS NHS TRUST
     daycaseHistoricPepCancelled:
       summary: Fragment - Historic Day Case attendance, cancelled
       value:
@@ -3433,6 +3924,12 @@ components:
           location:
             type: Location
             display: Munro Unit, St. Richards Hospital
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RYR'
+              display: UNIVERSITY HOSPITALS SUSSEX NHS FOUNDATION TRUST
     daycaseHistoricPepCancelledPendingReschedule:
       summary: Fragment - Historic Day Case attendance, cancelled pending reschedule
       value:
@@ -3458,6 +3955,12 @@ components:
           location:
             type: Location
             display: Grantham Hospital Outpatients
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RWD'
+              display: UNITED LINCOLNSHIRE TEACHING HOSPITALS NHS TRUST
     # Documents
     correspondenceUnreadLinked:
       summary: Fragment - Correspondence in an unread state linked to an appointment
@@ -3479,6 +3982,12 @@ components:
           description: Dermatology follow-up letter
           scheduledPeriod:
             start: '2024-01-03T11:22:18.293Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RTD'
+              display: THE NEWCASTLE UPON TYNE HOSPITALS NHS FOUNDATION TRUST
     correspondenceUnreadUnlinked:
       summary: Fragment - Correspondence in an unread state not linked to an appointment
       value:
@@ -3496,6 +4005,12 @@ components:
           description: Ear, Nose & Throat Appointment letter
           scheduledPeriod:
             start: '2024-03-23T09:23:12.203Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RTD'
+              display: THE NEWCASTLE UPON TYNE HOSPITALS NHS FOUNDATION TRUST
     correspondenceSeenLinked:
       summary: Fragment - Correspondence in an seen state linked to an appointment
       value:
@@ -3516,6 +4031,12 @@ components:
           description: Rheumatology reschedule letter
           scheduledPeriod:
             start: '2023-12-12T00:00:00.000Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RYJ'
+              display: IMPERIAL COLLEGE HEALTHCARE NHS TRUST
     correspondenceSeenUnlinked:
       summary: Fragment - Correspondence in an seen state not linked to an appointment
       value:
@@ -3533,6 +4054,12 @@ components:
           description: Ophthalmology cancellation letter
           scheduledPeriod:
             start: '2024-07-02T07:45:23.000Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RYJ'
+              display: IMPERIAL COLLEGE HEALTHCARE NHS TRUST
     correspondenceReadLinked:
       summary: Fragment - Correspondence in an read state linked to an appointment
       value:
@@ -3553,6 +4080,12 @@ components:
           description: Urology booking letter
           scheduledPeriod:
             start: '2024-02-21T14:23:10.111Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RQM'
+              display: CHELSEA AND WESTMINSTER HOSPITAL NHS FOUNDATION TRUST
     correspondenceReadUnlinked:
       summary: Fragment - Correspondence in an read state not linked to an appointment
       value:
@@ -3570,6 +4103,12 @@ components:
           description: Neurology discharge letter
           scheduledPeriod:
             start: '2024-04-09T09:23:32.230Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RQM'
+              display: CHELSEA AND WESTMINSTER HOSPITAL NHS FOUNDATION TRUST
     attachment: # TODO
       summary: Fragment - Attachment in an unread state linked to an correspondence
       value:
@@ -3587,6 +4126,12 @@ components:
           description: Parking and Map of the hospital
           scheduledPeriod:
             start: '2024-04-09T09:23:32.230Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RJ7'
+              display: ST GEORGE'S UNIVERSITY HOSPITALS NHS FOUNDATION TRUST
     # Questionnaires
     questionnaireIncompleteLinked:
       summary: Fragment - Questionnaire in an incomplete state linked to an appointment
@@ -3606,6 +4151,12 @@ components:
           description: MSK health questionnaire
           scheduledPeriod:
             start: '2024-01-13T07:33:23.192Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RJ7'
+              display: ST GEORGE'S UNIVERSITY HOSPITALS NHS FOUNDATION TRUST
     questionnaireIncompleteUnlinked:
       summary: Fragment - Questionnaire in an incomplete state not linked to an appointment
       value:
@@ -3621,6 +4172,12 @@ components:
           description: Pre-consultation Survey
           scheduledPeriod:
             start: '2023-03-18T11:01:10.102Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RJ6'
+              display: CROYDON HEALTH SERVICES NHS TRUST
     questionnairePartiallyCompleteLinked:
       summary: Fragment - Questionnaire in an partially completed state linked to an appointment
       value:
@@ -3639,6 +4196,12 @@ components:
           description: Pre-consultation Survey
           scheduledPeriod:
             start: '2023-12-01T23:01:23.120Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RAX'
+              display: KINGSTON AND RICHMOND NHS FOUNDATION TRUST
     questionnairePartiallyCompleteUnlinked:
       summary: Fragment - Questionnaire in an partially complated state not linked to an appointment
       value:
@@ -3654,6 +4217,12 @@ components:
           description: Ophthalmology waiting list validation
           scheduledPeriod:
             start: '2024-06-14T16:20:20.201Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXP'
+              display: COUNTY DURHAM AND DARLINGTON NHS FOUNDATION TRUST
     questionnaireCompleteLinked:
       summary: Fragment - Questionnaire in an completed state linked to an appointment
       value:
@@ -3672,6 +4241,12 @@ components:
           description: Asthma questionnaire
           scheduledPeriod:
             start: '2023-10-01T09:23:12.029Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXP'
+              display: COUNTY DURHAM AND DARLINGTON NHS FOUNDATION TRUST
     questionnaireCompleteUnlinked:
       summary: Fragment - Questionnaire in an completed state not linked to an appointment
       value:
@@ -3687,9 +4262,968 @@ components:
           description: General Surgery waiting list validation
           scheduledPeriod:
             start: '2020-05-22T04:33:12.002Z'
+          performer:
+            - type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXP'              
+              display: COUNTY DURHAM AND DARLINGTON NHS FOUNDATION TRUST
+    # PIFU
+    pifuZeroWaitingListZeroPifu:
+      summary: 200 - PIFU Zero Waiting List entries, Zero PIFU pathways
+      description: Scenario 1 - Zero Waiting List entries, Zero PIFU pathways
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.3.4
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 0
+        entry: []
+    pifuOneWaitingListZeroPifu:
+      summary: 200 - PIFU One Waiting List entry, Zero PIFU pathways
+      description: Scenario 2 - One Waiting List entry, Zero PIFU pathways
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.3.4
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 1
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RAP~ABC1000
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-05-21T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RAP~ABC1000
+            status: active
+            intent: order
+            title: General Surgery pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000002'
+            period:
+              start: '2025-03-21T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RAP'      
+              display: NORTH MIDDLESEX UNIVERSITY HOSPITAL NHS TRUST
+    pifuOneWaitingListOnePifuQuestionnaireWithMatchPepResponseError:
+      summary: 207 - PIFU One Waiting List entry, One PIFU questionnaire (included Trust) with match to pathway, active, not-started. PEP response error
+      description: Scenario 3 - One Waiting List entry, One PIFU questionnaire (included Trust) with match to pathway, active, not-started. PEP response error
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 2
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RAP~ABC1001
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-05-21T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RAP~ABC1001
+            status: active
+            intent: order
+            title: Urology pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000003'
+            period:
+              start: '2024-12-27T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RAP'      
+              display: NORTH MIDDLESEX UNIVERSITY HOSPITAL NHS TRUST
+            activity:
+            - detail:
+                kind: QuestionnaireResponse
+                status: not-started
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://api.service.nhs.uk/national-waiting-list/pifu-request/triage-questionnaire?p=RAP~ABC1001
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: nhs-waiting-list-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Urology
+                scheduledPeriod:
+                  start: '2025-03-01T00:00:00.000Z'
+                  end: '2025-09-01T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  display: NORTH MIDDLESEX UNIVERSITY HOSPITAL NHS TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/OperationOutcome/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: include
+          resource:
+            resourceType: OperationOutcome
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreOperationOutcome
+            issue:
+            - code: structure
+              severity: error
+              diagnostics: Response failed validation
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                valueCode: myportal-01
+    pifuOneWaitingListOnePifuQuestionnaireWithMatchSuppressed:
+      summary: 200 - PIFU One Waiting List entry, One PIFU questionnaire (excluded Trust)
+        with match to pathway, suppressed
+      description: Scenario 4 - One Waiting List entry, One PIFU questionnaire (excluded
+        Trust) with match to pathway, suppressed
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 2
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RH5~ABC1002
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-05-28T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RH5~ABC1002
+            status: active
+            intent: order
+            title: Trauma & Orthopaedics pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000004'
+            period:
+              start: '2024-09-09T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RH5'    
+              display: SOMERSET NHS FOUNDATION TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/OperationOutcome/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: include
+          resource:
+            resourceType: OperationOutcome
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreOperationOutcome
+            issue:
+            - code: business-rule
+              severity: information
+              diagnostics: 'AGGBR34: rejected Task undefined from nhs-waiting-list-01
+                with orgCode TST due to ODS whitelist exclusion'
+    pifuTwoWaitingListTwoPifuOneActiveAndCompleted:
+      summary: 200 - PIFU Two Waiting List entries (two providers), Two PIFU pathways
+        (two providers), one active and completed, one expired and not-started
+      description: Scenario 6 - Two Waiting List entries (two providers), Two PIFU
+        pathways (two providers), one active and completed, one expired and not-started
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 2
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RFS~ABC1004
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-05-28T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RFS~ABC1004
+            status: active
+            intent: order
+            title: Ear Nose & Throat pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000005'
+            period:
+              start: '2024-10-14T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RFS'    
+              display: CHESTERFIELD ROYAL HOSPITAL NHS FOUNDATION TRUST
+            activity:
+            - detail:
+                kind: QuestionnaireResponse
+                status: not-started
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://api.service.nhs.uk/national-waiting-list/pifu-request/triage-questionnaire?p=RFS~ABC1004
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: nhs-waiting-list-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Ear Nose & Throat
+                scheduledPeriod:
+                  start: '2024-12-10T00:00:00.000Z'
+                  end: '2025-03-10T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RFS'          
+                  display: CHESTERFIELD ROYAL HOSPITAL NHS FOUNDATION TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RFF~XYZ1005
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-05-28T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RFF~XYZ1005
+            status: active
+            intent: order
+            title: Ophthalmology pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000005'
+            period:
+              start: '2025-01-01T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RFF'                  
+              display: BARNSLEY HOSPITAL NHS FOUNDATION TRUST
+            activity:
+            - detail:
+                id: faa89f9a-e3d7-40c0-bd36-c764533696f9
+                kind: QuestionnaireResponse
+                status: completed
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://api.service.nhs.uk/national-waiting-list/pifu-request/triage-questionnaire/faa89f9a-e3d7-40c0-bd36-c764533696f9?p=RFF~XYZ1005
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: nhs-waiting-list-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2025-03-12'
+                description: Ophthalmology
+                scheduledPeriod:
+                  start: '2025-03-10T00:00:00.000Z'
+                  end: '2026-03-10T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RFF'
+                  display: BARNSLEY HOSPITAL NHS FOUNDATION TRUST
+    pifuOneWaitingListOnePifuWuestionnaireWithoutMatchMultipleActivations:
+      summary: 200 - PIFU One Waiting List entry, One PIFU questionnaire (included Trust)
+        without match to pathway, multiple activations, latest in-progress
+      description: Scenario 7 - One Waiting List entry, One PIFU questionnaire (included
+        Trust) without match to pathway, multiple activations, latest in-progress
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 2
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            status: active
+            intent: order
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000006'
+            activity:
+            - detail:
+                id: 81ade2b0-e666-4995-a005-965b094810da
+                kind: QuestionnaireResponse
+                status: in-progress
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://api.service.nhs.uk/national-waiting-list/pifu-request/triage-questionnaire/81ade2b0-e666-4995-a005-965b094810da?p=REM~ABC1006
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: nhs-waiting-list-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Plastic Surgery
+                scheduledPeriod:
+                  start: '2024-08-31T00:00:00.000Z'
+                  end: '2026-08-31T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'REM'
+                  display: LIVERPOOL UNIVERSITY HOSPITALS NHS FOUNDATION TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/OperationOutcome/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: include
+          resource:
+            resourceType: OperationOutcome
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreOperationOutcome
+            issue:
+            - code: business-rule
+              severity: information
+              diagnostics: 'AGGBR23: excluding WaitingList entry with org code TST
+                due to exclusion rule'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                valueCode: nhs-waiting-list-01
+    pifuTwoWaitingListTwoPifuOneActiveWithMultipleActivationsOneMatchedOneNonPifuQuestionnaire:
+      summary: 200 - PIFU Two Waiting List entries (same provider), Two PIFU pathways
+        (same providers), one active with multiple activations (expired) not-started,
+        one matched with PEP PIFU Questionnaire, active, completed. One non-PIFU questionnaire
+      description: Scenario 8 - Two Waiting List entries (same provider), Two PIFU
+        pathways (same providers), one active with multiple activations (expired)
+        not-started, one matched with PEP PIFU Questionnaire, active, completed. One
+        non-PIFU questionnaire
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 4
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            status: active
+            intent: order
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000007'
+            activity:
+            - detail:
+                id: E98EFC97-8F9C-4EDD-ABC2-37A99C236DAC
+                kind: QuestionnaireResponse
+                status: completed
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire?id=E98EFC97-8F9C-4EDD-ABC2-37A99C236DAC
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: myportal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/F3A58FFD-8959-40EF-A2FE-FCD14764896E
+                description: Transplantation Surgery Pre-consultation Survey
+                scheduledPeriod:
+                  start: '2025-02-08T06:07:33.500Z'
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RXC~ABC1008
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-06-01T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RXC~ABC1008
+            status: active
+            intent: order
+            title: Dermatology pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000007'
+            period:
+              start: '2024-03-05T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXC'    
+              display: EAST SUSSEX HEALTHCARE NHS TRUST
+            activity:
+            - detail:
+                kind: QuestionnaireResponse
+                status: not-started
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://api.service.nhs.uk/national-waiting-list/pifu-request/triage-questionnaire?p=RXC~ABC1008
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: nhs-waiting-list-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: General Surgery
+                scheduledPeriod:
+                  start: '2024-09-10T00:00:00.000Z'
+                  end: '2025-03-10T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RXC'    
+                  display: EAST SUSSEX HEALTHCARE NHS TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RXC~ABC1007
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-06-01T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RXC~ABC1007
+            status: active
+            intent: order
+            title: Cardiology pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000007'
+            period:
+              start: '2024-10-03T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RXC'    
+              display: EAST SUSSEX HEALTHCARE NHS TRUST
+            activity:
+            - detail:
+                id: 13f19767-bfb8-4c63-bf66-fccffcb9f8c2
+                kind: QuestionnaireResponse
+                status: completed
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: my-portal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/d5269d74-06f9-4725-9179-7216c3b58b61
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2024-12-22'
+                description: Trauma and Orthopaedic PIFU triage
+                scheduledPeriod:
+                  start: '2024-12-20T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RXC'    
+                  display: EAST SUSSEX HEALTHCARE NHS TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/OperationOutcome/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: include
+          resource:
+            resourceType: OperationOutcome
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreOperationOutcome
+            issue:
+            - code: business-rule
+              severity: information
+              diagnostics: 'AGGBR33: questionnaire with pathwayId RXC~ABC1007 from
+                nhs-waiting-list-01 has been replaced with questionnaire from myportal-01
+                due to PEP priority'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                valueCode: nhs-waiting-list-01
+    pifuTwoWaitingListZeroPifuPepFivePifuQuestionnaires:
+      summary: 200 - PIFU Two Waiting List entries, Zero PIFU pathways, PEP returns five
+        PIFU questionnaires; 1 active, in-progress, 2 active, not-started, 3 expired,
+        not started, 4 expired, in-progress, 5 expired completed
+      description: Scenario 10 - 2 Waiting List entries, Zero PIFU pathways, PEP returns
+        five PIFU questionnaires; 1 active, in-progress, 2 active, not-started, 3
+        expired, not started, 4 expired, in-progress, 5 expired completed
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 3
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            status: active
+            intent: order
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000008'
+            activity:
+            - detail:
+                id: 59444062-9759-46f6-9c1a-2722f14d97fa
+                kind: QuestionnaireResponse
+                status: completed
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: my-portal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/f3fb86bf-dc44-446e-a975-34b13dd84e03
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2024-01-27'
+                description: Gastroenterology PIFU triage
+                scheduledPeriod:
+                  start: '2024-01-24T00:00:00.000Z'
+                  end: '2024-07-24T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RXC'    
+                  display: EAST SUSSEX HEALTHCARE NHS TRUST
+            - detail:
+                id: da0c9876-4bb1-425e-8055-b3824371a93b
+                kind: QuestionnaireResponse
+                status: not-started
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: my-portal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/1ba97032-fff2-4490-a1dd-2af0f9c29881
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Cardiology PIFU triage
+                scheduledPeriod:
+                  start: '2024-05-03T00:00:00.000Z'
+                  end: '2024-11-03T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RXC'    
+                  display: EAST SUSSEX HEALTHCARE NHS TRUST
+            - detail:
+                id: 13f19767-bfb8-4c63-bf66-fccffcb9f8c2
+                kind: QuestionnaireResponse
+                status: in-progress
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: my-portal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/d5269d74-06f9-4725-9179-7216c3b58b61
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Dermatology PIFU triage
+                scheduledPeriod:
+                  start: '2024-06-08T00:00:00.000Z'
+                  end: '2024-12-08T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RXC'    
+                  display: EAST SUSSEX HEALTHCARE NHS TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RTQ~RBH1210382104
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-06-01T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RTQ~RBH1210382104
+            status: active
+            intent: order
+            title: General Surgery pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000008'
+            period:
+              start: '2024-03-05T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RTQ'
+              display: GLOUCESTERSHIRE HEALTH AND CARE NHS FOUNDATION TRUST
+            activity:
+            - detail:
+                id: 530fed3b-1bac-445f-9177-ec256755f223
+                kind: QuestionnaireResponse
+                status: in-progress
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: my-portal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/fe625d51-80d2-49fc-a02f-ccd0c7d92981
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Neurology PIFU triage
+                scheduledPeriod:
+                  start: '2024-06-13T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RTQ'
+                  display: GLOUCESTERSHIRE HEALTH AND CARE NHS FOUNDATION TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RTQ~RBH8984649315
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              lastUpdated: '2025-06-01T00:00:00.000Z'
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            identifier:
+            - system: https://fhir.nhs.uk/Id/care-pathway-id
+              value: RTQ~RBH8984649315
+            status: active
+            intent: order
+            title: General Surgery pathway
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000008'
+            period:
+              start: '2024-10-03T00:00:00.000Z'
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-PlannedWaitTime
+                valueDuration:
+                  unit: weeks
+                  value: 54
+            author:
+              type: Organization
+              identifier:
+                system: https://fhir.nhs.uk/Id/ods-organization-code
+                value: 'RTQ'
+              display: GLOUCESTERSHIRE HEALTH AND CARE NHS FOUNDATION TRUST
+            activity:
+            - detail:
+                id: ada9b087-8ceb-4f88-b6b3-8ba940150f73
+                kind: QuestionnaireResponse
+                status: not-started
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: my-portal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/ad0ae6c5-c5b4-439a-b79c-5e010e63ef17
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                description: Respiratory PIFU triage
+                scheduledPeriod:
+                  start: '2024-09-18T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RTQ'
+                  display: GLOUCESTERSHIRE HEALTH AND CARE NHS FOUNDATION TRUST
+    pifuZeroWaitingListZeroPifuPepTimeout:
+      summary: 207 - PIFU Zero Waiting List entries, Zero PIFU pathways. PEP timeout
+      description: Scenario 13 - Zero Waiting List entries, Zero PIFU pathways. PEP
+        timeout
+      value:
+        resourceType: Bundle
+        id: c93e2449-a2ef-4476-ad15-13491036be22
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 1
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/OperationOutcome/c93e2449-a2ef-4476-ad15-13491036be22
+          search:
+            mode: include
+          resource:
+            resourceType: OperationOutcome
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreOperationOutcome
+            issue:
+            - severity: error
+              code: timeout
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                valueCode: my-portal-01
+              diagnostics: My Portal Endpoint request timed out
+    pifuWlmdsError:
+      summary: 207 - PIFU Unhappy path- WLMDS error
+      description: Scenario 15 - Unhappy path- WLMDS error
+      value:
+        resourceType: Bundle
+        id: 2dda10de-2472-4f3f-ab13-480557d63d93
+        meta:
+          versionId: 3.4.0
+          profile:
+          - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreBundle
+        type: searchset
+        total: 2
+        entry:
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/CarePlan/2dda10de-2472-4f3f-ab13-480557d63d93
+          search:
+            mode: match
+          resource:
+            resourceType: CarePlan
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreCarePlan
+            status: active
+            intent: order
+            subject:
+              identifier:
+                system: https://fhir.nhs.uk/Id/nhs-number
+                value: '9000000010'
+            activity:
+            - detail:
+                id: 13f19767-bfb8-4c63-bf66-fccffcb9f8c2
+                kind: QuestionnaireResponse
+                status: completed
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: myportal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/d5269d74-06f9-4725-9179-7216c3b58b61
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type
+                  valueCoding:
+                    system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
+                    code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2025-12-23'
+                description: Trauma and Orthopaedic PIFU triage
+                scheduledPeriod:
+                  start: '2024-12-20T00:00:00.000Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RTQ'
+                  display: GLOUCESTERSHIRE HEALTH AND CARE NHS FOUNDATION TRUST
+            - detail:
+                id: E98EFC97-8F9C-4EDD-ABC2-37A99C236DAC
+                kind: QuestionnaireResponse
+                status: completed
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://my.portal.com/Questionnaire?id=E98EFC97-8F9C-4EDD-ABC2-37A99C236DAC
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: myportal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Linked-Resource
+                  valueReference:
+                    reference: Appointment/F3A58FFD-8959-40EF-A2FE-FCD14764896E
+                description: Transplantation Surgery Pre-consultation Survey
+                scheduledPeriod:
+                  start: '2025-02-08T06:07:33.500Z'
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'RTQ'
+                  display: GLOUCESTERSHIRE HEALTH AND CARE NHS FOUNDATION TRUST
+            - detail:
+                id: 5700CE86-51D0-4781-A308-278F8DD4D1D4
+                kind: Appointment
+                status: in-progress
+                extension:
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                  valueUrl: https://api.myportal.co.uk/public/Appointment/5700CE86-51D0-4781-A308-278F8DD4D1D4
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Client-id
+                  valueCode: myportal-01
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Appointment-Status
+                  valueCoding:
+                    system: http://hl7.org/fhir/appointmentstatus
+                    code: booked
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Consultation-Medium
+                  valueCode: FACE_TO_FACE
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Encounter-Class
+                  valueCode: outpatient
+                description: Dental Medicine Specialties
+                scheduledPeriod:
+                  start: '2025-06-04T16:37:59.080Z'
+                location:
+                  type: Location
+                  display: UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST
+                performer:
+                - type: Organization
+                  identifier:
+                    system: https://fhir.nhs.uk/Id/ods-organization-code
+                    value: 'R0D'
+                  display: UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST
+        - fullUrl: https://api.service.nhs.uk/patient-care-aggregator-api/OperationOutcome/2dda10de-2472-4f3f-ab13-480557d63d93
+          search:
+            mode: include
+          resource:
+            resourceType: OperationOutcome
+            meta:
+              profile:
+              - https://fhir.nhs.uk/StructureDefinition/WayfinderUKCoreOperationOutcome
+            issue:
+            - code: timeout
+              severity: error
+              diagnostics: waitinglist-api request timed out
+              extension:
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link
+                valueCode: nhs-waiting-list-01
     # Waiting Lists
     pathwayActiveEstimatedWait:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time
+      summary: Fragment - Active Waiting List (Pathway) with estimated mean average and 80th percentile wait times
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3717,11 +5251,18 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
     pathwayActiveNoEstimatedWait:
-      summary: Fragment - Active Waiting List (Pathway) without an estimated wait time
+      summary: Fragment - Active Waiting List (Pathway) without estimated wait times
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/RAX~ABC220343220X
         search:
@@ -3746,7 +5287,10 @@ components:
             start: "2024-03-13"
           author:
             type: Organization
-            display: Kingston Hospital NHS Foundation Trust
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'RAX'
+            display: Kingston And Richmond Hospital NHS Foundation Trust
     pathwayActiveBreastScreening:
       summary: Fragment - Active Breast Screening Pathway with an estimated wait time and pending referral
       value:
@@ -3773,6 +5317,9 @@ components:
             start: "2024-03-02"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/correspondenceReadUnlinked"
@@ -3781,7 +5328,7 @@ components:
             - $ref: "#/components/examples/appointmentFuturePepBooked"
             - $ref: "#/components/examples/correspondenceUnreadLinked"
     pathwayActivePendingReferral:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time and pending referral
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times and pending referral
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3809,13 +5356,20 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralActiveBookable"
     pathwayActiveReferralUpcomingAppointment:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral and upcoming appointment
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral and upcoming appointment
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3843,14 +5397,21 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
             - $ref: "#/components/examples/appointmentFutureErsFaceToFace"
     pathwayActiveReferralAppointmentHistoricAttended:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral and attended appointment
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral and attended appointment
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3878,14 +5439,21 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
             - $ref: "#/components/examples/appointmentHistoricPepAttended"
     pathwayActiveReferralAppointmentHistoricCancelled:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral and cancelled appointment with correspondence
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral and cancelled appointment with correspondence
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3913,15 +5481,22 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
             - $ref: "#/components/examples/appointmentHistoricPepCancelled"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentHistoricDNA:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral, Did not attend appointment and correspondence
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral, Did not attend appointment and correspondence
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3949,15 +5524,22 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
             - $ref: "#/components/examples/appointmentHistoricPepDNA"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentUpcomingDiagnostic:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referal, appointments with correspondence and upcoming diagnostic
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referal, appointments with correspondence and upcoming diagnostic
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -3985,8 +5567,15 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
@@ -3997,7 +5586,7 @@ components:
             - $ref: "#/components/examples/diagnosticFuturePepBooked"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentHistoricDiagnostic:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referal, appointments with correspondence and historic diagnostic
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referal, appointments with correspondence and historic diagnostic
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -4025,8 +5614,15 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
@@ -4037,7 +5633,7 @@ components:
             - $ref: "#/components/examples/diagnosticHistoricPepAttended"
             - $ref: "#/components/examples/correspondenceReadLinked"
     pathwayActiveReferralAppointmentDiagnosticUpcomingAdmission:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral, appointment with correspondence and upcoming admission
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral, appointment with correspondence and upcoming admission
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -4065,8 +5661,15 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
@@ -4078,7 +5681,7 @@ components:
             - $ref: "#/components/examples/inpatientFuturePepBooked"
             - $ref: "#/components/examples/questionnaireCompleteUnlinked"
     pathwayActiveReferralAppointmentDiagnosticAdmissionPostTreatmentFollowUp:
-      summary: Fragment - Active Waiting List (Pathway) with an estimated wait time, historic referral, appointments with correspondence, diagnostic, admission and post treatment follow up
+      summary: Fragment - Active Waiting List (Pathway) with estimated wait times, historic referral, appointments with correspondence, diagnostic, admission and post treatment follow up
       value:
         fullUrl: https://internal-qa.api.service.nhs.uk/patient-care-aggregator-api/CarePlan/R1F~ABC220939220X
         search:
@@ -4106,8 +5709,15 @@ components:
                 valueDuration:
                   value: 22
                   unit: "weeks"
+              - url: https://fhir.nhs.uk/StructureDefinition/Extension-80thPercentileWaitTime
+                valuationDuration:
+                  value: 25
+                  unit: "weeks"
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'R1F'
             display: Isle of Wight NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
@@ -4145,6 +5755,9 @@ components:
             end: 2023-10-03
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'RHU'
             display: Portsmouth Hospitals University NHS Trust
     pathwayCompleteReferralAppointmentDiagnosticHistoricAdmission:
       summary: Fragment - Complete Waiting List (Pathway) with an estimated wait time, historic referral, appointments with correspondence, diagnostic, admission and post treatment follow up
@@ -4173,6 +5786,9 @@ components:
             end: 2023-10-03
           author:
             type: Organization
+            identifier:
+              system: https://fhir.nhs.uk/Id/ods-organization-code
+              value: 'RHU'
             display: Portsmouth Hospitals University NHS Trust
           activity:
             - $ref: "#/components/examples/referralHistoric"
