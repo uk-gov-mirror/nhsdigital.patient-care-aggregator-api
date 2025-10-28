@@ -402,11 +402,11 @@ components:
                         properties:
                           value:
                             description: The planned mean average wait time value.
-                            type: string
+                            type: number
                             example: 16
                           unit:
                             description: The planned mean average wait time unit.
-                            type: number
+                            type: string
                             example: weeks
                   - description: MPC 80th percentile wait time data
                     type: object
@@ -421,11 +421,11 @@ components:
                         properties:
                           value:
                             description: The planned 80th percentile wait time value.
-                            type: string
+                            type: number
                             example: 20
                           unit:
                             description: The planned 80th percentile wait time unit.
-                            type: number
+                            type: string
                             example: weeks
         author:
           description: The organisation responsible for the pathway of care. This is mandatory for Waiting List (CarePlans).
@@ -1127,6 +1127,21 @@ components:
                           code:
                             type: string
                             example: pifu-triage
+                  - description: FHIR extension for Questionnaire response last modified date
+                    type: object
+                    required:
+                      - url
+                      - valueDate
+                    properties:
+                      url:
+                        description: Extension URL for the Questionnaire response last modified date.
+                        type: string
+                        enum:
+                          - https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                      valueDate:
+                        description: The date that this questionnaire response was last modified by the user.
+                        type: string
+                        example: '2025-06-23'
             description:
               description: Description of the questionnaire to be displayed to the patient. _Note; this is freetext and can contain some data quality issues._
               type: string
@@ -1145,10 +1160,6 @@ components:
                   description: The effective end date of the questionnaire i.e. the date the questionnaire expires for the patient to complete.
                   type: string
                   example: '2025-12-20T00:00:00.000Z'
-            authored:
-              description: The date and/or time that this questionnaire response was last modified by the user.
-              type: string
-              example: '2025-06-23T16:10:00.000Z'
             performer:
               description: The organisation responsible for the Questionnaire. 
               type: array
@@ -4572,6 +4583,8 @@ components:
                   valueCoding:
                     system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
                     code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2025-03-12'
                 description: Ophthalmology
                 scheduledPeriod:
                   start: '2025-03-10T00:00:00.000Z'
@@ -4803,6 +4816,8 @@ components:
                   valueCoding:
                     system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
                     code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2024-12-22'
                 description: Trauma and Orthopaedic PIFU triage
                 scheduledPeriod:
                   start: '2024-12-20T00:00:00.000Z'
@@ -4877,6 +4892,8 @@ components:
                   valueCoding:
                     system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
                     code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2024-01-27'
                 description: Gastroenterology PIFU triage
                 scheduledPeriod:
                   start: '2024-01-24T00:00:00.000Z'
@@ -5128,6 +5145,8 @@ components:
                   valueCoding:
                     system: https://fhir.nhs.uk/CodeSystem/Questionnaire-Type
                     code: pifu-triage
+                - url: https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-LastModifiedDate
+                  valueDate: '2025-12-23'
                 description: Trauma and Orthopaedic PIFU triage
                 scheduledPeriod:
                   start: '2024-12-20T00:00:00.000Z'
