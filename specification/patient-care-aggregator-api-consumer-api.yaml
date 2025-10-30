@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Wayfinder Patient Care Aggregator API
-  version: v3.7.0
+  version: v3.8.0
   description: |
     <div class="nhsd-m-emphasis-box nhsd-m-emphasis-box--emphasis nhsd-!t-margin-bottom-6" aria-label="Highlighted Information">
         <div class="nhsd-a-box nhsd-a-box--border-blue">
@@ -580,7 +580,7 @@ components:
                             description: Code system used for the specialty.
                             type: string
                             enum:
-                              - https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1
+                              - https://fhir.nhs.uk/CodeSystem/Specialty-1
                           display:
                             description: The specialty itself, in plain text.
                             type: string
@@ -2530,7 +2530,7 @@ components:
                 code: bookable
             - url: https://fhir.nhs.uk/StructureDefinition/Extension-Specialty
               valueCoding:
-                system: https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1
+                system: https://fhir.nhs.uk/CodeSystem/Specialty-1
                 display: Ear, Nose & Throat
           description: ENT - Specialist Otology - Freeman - Newcastle FT - RTD
           scheduledPeriod:
@@ -2584,7 +2584,7 @@ components:
                 code: bookableWasCancelled
             - url: https://fhir.nhs.uk/StructureDefinition/Extension-Specialty
               valueCoding:
-                system: https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1
+                system: https://fhir.nhs.uk/CodeSystem/Specialty-1
                 display: Rheumatology
           description: Early Inflammatory Arthritis Service - Cheltenham General Hospital - RTE
           scheduledPeriod:
@@ -2613,7 +2613,7 @@ components:
                 code: inReview
             - url: https://fhir.nhs.uk/StructureDefinition/Extension-Specialty
               valueCoding:
-                system: https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1
+                system: https://fhir.nhs.uk/CodeSystem/Specialty-1
                 display: Urology
           description: Urology - General Telephone Clinic - Clatterbridge Hospital RBL
           scheduledPeriod:
@@ -2645,7 +2645,7 @@ components:
                 code: inReview
             - url: https://fhir.nhs.uk/StructureDefinition/Extension-Specialty
               valueCoding:
-                system: https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1
+                system: https://fhir.nhs.uk/CodeSystem/Specialty-1
                 display: Neurology
           description: Neurology - University Hospitals Sussex - St Richard's Chichester - RYR
           scheduledPeriod:
@@ -2670,7 +2670,7 @@ components:
                 code: bookable
             - url: https://fhir.nhs.uk/StructureDefinition/Extension-Specialty
               valueCoding:
-                system: https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1
+                system: https://fhir.nhs.uk/CodeSystem/Specialty-1
                 display: Dermatology
           description: Dermatology General (WHH Ashford)-East Kent Hospitals Trust-RVV
           scheduledPeriod:

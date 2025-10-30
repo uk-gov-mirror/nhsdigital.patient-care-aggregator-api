@@ -3,7 +3,7 @@
 openapi: '3.0.3'
 info:
   title: "Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard"
-  version: "3.7.0"
+  version: "3.8.0"
   description: |
     ## Overview 
     ![Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard context diagram](https://digital.nhs.uk/binaries/content/gallery/website/developer/api-catalogue/patient-care-aggregator-fhir-api/patient-care-aggregator-get-appointments-api-standard.svg?raw=true)
@@ -482,6 +482,7 @@ components:
                               description: Coding system for the specialty code.
                               enum:
                                 - "https://fhir.nhs.uk/STU3/CodeSystem/Specialty-1"
+                                - "https://fhir.nhs.uk/CodeSystem/Specialty-1"
                             code:
                               description: "Three-digit NHS specialty code. Equivalent to NHS Data Dictionary Treatment Function Code"
                               type: string
@@ -1536,19 +1537,250 @@ components:
     outpatientAppointment:
       summary: 200 Example Patient with a Outpatient Appointment
       value:
-        $ref: "./components/examples/GetAppointmentResponseHappyPath.json"
+        resourceType: Bundle
+        type: searchset
+        total: 1
+        entry:
+          - fullUrl: "https://fhir.patientportal.co.uk/Appointment/d9df1326-1008-45df-b9dd-a920b64ec043"
+            search:
+              mode: match
+            resource:
+              resourceType: Appointment
+              id: "d9df1326-1008-45df-b9dd-a920b64ec043"
+              extension:
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-ServiceRequest-Priority"
+                  valueCoding:
+                    system: "https://fhir.nhs.uk/CodeSystem/eRS-Priority"
+                    code: "ROUTINE"
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Appointment-RequestStatus"
+                  valueCode: "Pending Reschedule"
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Consultation-Medium"
+                  valueCode: "VIRTUAL"
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link"
+                  valueUrl: "https://my.patientportal.co.uk/Appointment/d9df1326-1008-45df-b9dd-a920b64ec043"
+              identifier:
+                - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/Appointment"
+                  value: "4817508"
+                - system: "https://prod.myportal.com/fhir/Appointment"
+                  value: "3a146c43-2b21-44e9-95bc-6f4849e504c8"
+              status: "booked"
+              description: "Dermatology"
+              start: "2021-06-13T12:30:00+00:00"
+              end: "2021-06-13T12:45:00+00:00"
+              basedOn:
+                - identifier:
+                    - system: "https://fhir.nhs.uk/Id/UBRN"
+                      value: "000000000001"
+                    - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/ServiceRequest"
+                      value: "265413"
+                    - system: "https://fhir.nhs.uk/Id/PathwayId"
+                      value: "RBH5644312231"
+              participant:
+                - actor:
+                    type: "Patient"
+                    identifier:
+                      system: "https://fhir.nhs.uk/Id/nhs-number"
+                      value: "9000000009"
+                  status: "accepted"
+                - actor:
+                    type: "Location"
+                    identifier:
+                      system: "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value: "RFF"
+                  status: "accepted"
+                - actor:
+                    type: "Location"
+                    display: "Chapel Allerton Hospital, Dentistry Dept, 2nd Floor"
+                  status: "accepted"
     inpatientAdmission:
       summary: 200 Example Patient with a Inpatient Admission and a pre assessment appointment
       value:
-        $ref: "./components/examples/GetInpatientAdmissionResponseHappyPath.json"
+        resourceType: Bundle
+        type: searchset
+        total: 2
+        entry:
+          - fullUrl: "https://fhir.patientportal.co.uk/Appointment/06844193-7064-4d98-86c2-442d0209ca60"
+            search:
+              mode: match
+            resource:
+              resourceType: Appointment
+              id: "06844193-7064-4d98-86c2-442d0209ca60"
+              extension:
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-ServiceRequest-Priority"
+                  valueCoding:
+                    system: "https://fhir.nhs.uk/CodeSystem/eRS-Priority"
+                    code: "ROUTINE"
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Consultation-Medium"
+                  valueCode: "FACE_TO_FACE"
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link"
+                  valueUrl: "https://my.patientportal.co.uk/Appointment/06844193-7064-4d98-86c2-442d0209ca60"
+              identifier:
+                - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/Appointment"
+                  value: "4817501"
+                - system: "https://prod.myportal.com/fhir/Appointment"
+                  value: "06844193-7064-4d98-86c2-442d0209ca60"
+              status: "booked"
+              description: "Pre-assessment appointment"
+              start: "2025-05-20T12:30:00+00:00"
+              end: "2025-05-20T12:45:00+00:00"
+              basedOn:
+                - identifier:
+                    - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/ServiceRequest"
+                      value: "265413"
+                    - system: "https://fhir.nhs.uk/Id/PathwayId"
+                      value: "RBH5644312231"
+              participant:
+                - actor:
+                    type: "Patient"
+                    identifier:
+                      system: "https://fhir.nhs.uk/Id/nhs-number"
+                      value: "9000000009"
+                  status: "accepted"
+                - actor:
+                    type: "Location"
+                    identifier:
+                      system: "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value: "RFF"
+                  status: "accepted"
+                - actor:
+                    type: "Location"
+                    display: "Chapel Allerton Hospital, Dentistry Dept, 2nd Floor"
+                  status: "accepted"
+          - fullUrl: "https://fhir.patientportal.co.uk/Appointment/cf3686d3-dda5-4e61-9245-6220da02eaf6"
+            search:
+              mode: match
+            resource:
+              resourceType: Appointment
+              id: "cf3686d3-dda5-4e61-9245-6220da02eaf6"
+              extension:
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Portal-Link"
+                  valueUrl: "https://my.patientportal.co.uk/Appointment/cf3686d3-dda5-4e61-9245-6220da02eaf6"
+              identifier:
+                - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/Appointment"
+                  value: "4817509"
+                - system: "https://prod.myportal.com/fhir/Appointment"
+                  value: "6a79f7d4-6c92-4b41-9020-349fab9a52da"
+              appointmentType:
+                coding:
+                  - system: "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+                    code: "IMP"
+                    display: "inpatient encounter"
+              status: "booked"
+              description: "Dermatology Procedure"
+              start: "2025-06-13T08:00:00+00:00"
+              end: "2025-06-16T17:00:00+00:00"
+              basedOn:
+                - identifier:
+                    - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/ServiceRequest"
+                      value: "265414"
+                    - system: "https://fhir.nhs.uk/Id/PathwayId"
+                      value: "RBH5644312231"
+              participant:
+                - actor:
+                    type: "Patient"
+                    identifier:
+                      system: "https://fhir.nhs.uk/Id/nhs-number"
+                      value: "9000000009"
+                  status: "accepted"
+                - actor:
+                    type: "Location"
+                    identifier:
+                      system: "https://fhir.nhs.uk/Id/ods-organization-code"
+                      value: "RFF"
+                  status: "accepted"
+                - actor:
+                    type: "Location"
+                    display: "Chapel Allerton Hospital, Dentistry Dept, 2nd Floor"
+                  status: "accepted"
     document:
       summary: 200 Example Patient with a Document
       value:
-        $ref: "./components/examples/GetDocumentReferencesResponseHappyPath.json"
+        resourceType: Bundle
+        type: searchset
+        total: 1
+        entry:
+          - fullUrl: "https://my.patientportal.co.uk/DocumentReference/d9df1326-1008-45df-b9dd-a920b64ec043"
+            search:
+              mode: match
+            resource:
+              resourceType: DocumentReference
+              id: "2f02f7ac-0de5-4271-81ad-92b69ead27e9"
+              extension:
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Document-ReadReceipt"
+                  valueCode: "Read"
+              identifier:
+                - system: "https://fhir.myclinicalsystem.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d/DocumentReference"
+                  value: "4817508"
+                - system: "https://my.portal.com/fhir/DocumentReference"
+                  value: "3a146c43-2b21-44e9-95bc-6f4849e504c8"
+              status: "current"
+              docStatus: "final"
+              subject:
+                type: "Patient"
+                identifier:
+                  system: "https://fhir.nhs.uk/Id/nhs-number"
+                  value: "9000000001"
+              context:
+                related:
+                  - type: "Appointment"
+                    reference: "https://my.portal.com/fhir/R4/Appointment/0448E4C8-DD12-4BAD-9B59-6091C9484701"
+              date: "2021-06-13T12:30:00+00:00"
+              custodian:
+                type: "Organization"
+                identifier:
+                  system: "https://fhir.nhs.uk/Id/ods-organization-code"
+                  value: "RFF"
+                display: "Barnsley Hospital NHS Foundation Trust"
+              description: "Dermatology cancellation letter"
+              content:
+                - attachment:
+                    contentType: "application/pdf"
+                    url: "https://my.portal.com/Document/2f02f7ac-0de5-4271-81ad-92b69ead27e9"
     questionnaire:
       summary: 200 Example Patient with a Questionnaire
       value:
-        $ref: "./components/examples/GetTasksResponseHappyPath.json"
+        resourceType: Bundle
+        type: searchset
+        total: 1
+        entry:
+          - fullUrl: "https://my.patientportal.co.uk/Task/d9df1326-1008-45df-b9dd-a920b64ec043"
+            search:
+              mode: match
+            resource:
+              resourceType: Task
+              id: "cdb83383-f17e-4bf7-8f40-342f7f7c7d8d"
+              basedOn:
+                - type: "CarePlan"
+                  identifier:
+                    system: "https://fhir.nhs.uk/Id/PathwayId"
+                    value: "RBH5644312231"
+              status: "requested"
+              intent: "plan"
+              description: "Dermatology Pre-consultation Health Survey"
+              focus:
+                type: "Appointment"
+                reference: "https://my.portal.com/fhir/R4/Appointment/ec2458f2-1e24-41c8-b71b-0e701af7583d"
+              for:
+                type: "Patient"
+                identifier:
+                  system: "https://fhir.nhs.uk/Id/nhs-number"
+                  value: "9000000001"
+              authoredOn: "2021-06-13T12:30:00+00:00"
+              reasonReference:
+                type: "Questionnaire"
+                reference: "https://my.portal.com/Questionnaire/cdb83383-f17e-4bf7-8f40-342f7f7c7d8d"
+              owner:
+                type: "Organization"
+                identifier:
+                  system: "https://fhir.nhs.uk/Id/ods-organization-code"
+                  value: "RFF"
+                display: "Barnsley Hospital NHS Foundation Trust"
+              reasonCode:
+                coding:
+                  - system: "https://fhir.nhs.uk/StructureDefinition/Extension-Questionnaire-Type"
+                    code: "CONS-Survey"
+                    display: "Consultation Survey"
+                text: "Pre-consultation Survey"
     missingNhsNumber:
       summary: 400 Missing patient:identifier search parameter
       description: No patient:identifier as a search parameter.

@@ -4,7 +4,7 @@
 openapi: '3.0.0'
 info:
   title: "Patient Care Aggregator Record Service API"
-  version: "1.0.1"
+  version: "1.0.2"
   description: |
     ## Overview 
     ![Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard context diagram](https://digital.nhs.uk/binaries/content/gallery/website/developer/api-catalogue/patient-care-aggregator-fhir-api/patient-care-aggregator-record-service-api-context-diagram.svg?raw=true)
@@ -168,8 +168,9 @@ paths:
                     type: string
                     pattern: '^[1-9][0-9]{9}$'
                     example: '9000000009'
-            example:
-              $ref: components/examples/RecordServiceSendPatientListRequest.json
+            examples:
+              default:
+                $ref: "#/components/examples/RecordServiceSendPatientListRequest"
       responses:
         '200':
           description: OK
@@ -182,8 +183,9 @@ paths:
                     type: string
                     enum: 
                       - success
-              example:
-                $ref: components/examples/RecordServiceSendPatientListResponseHappyPath.json
+              examples:
+                default:
+                  $ref: "#/components/examples/RecordServiceSendPatientListResponseHappyPath"
         '4XX':
           description: |
             An error occurred as follows:
@@ -206,10 +208,28 @@ paths:
                   data:
                     type: string
                     example: 'clientId mismatch'
-              example:
-                $ref: components/examples/RecordServiceSendPatientListResponseError.json
+              examples:
+                default:
+                  $ref: "#/components/examples/RecordServiceSendPatientListResponseError"
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+  examples:
+    RecordServiceSendPatientListRequest:
+      summary: Example request to send a list of NHS numbers
+      value:
+        clientId: "pep-01"
+        nhsNumbers:
+          - "9000000009"
+          - "9000000018"
+    RecordServiceSendPatientListResponseHappyPath:
+      summary: Example successful response
+      value:
+        result: "success"
+    RecordServiceSendPatientListResponseError:
+      summary: Example error response
+      value:
+        code: "error.bad-request"
+        data: "\"nhsNumbers[1]\" with value \"abc\" fails to match the required pattern: /^[1-9][0-9]{9}$/. \"nhsNumbers[2]\" with value \"0123456789\" fails to match the required pattern: /^[1-9][0-9]{9}$/. \"nhsNumbers[3]\" with value \"012345678a\" fails to match the required pattern: /^[1-9][0-9]{9}$/. \"nhsNumbers[4]\" with value \"0123456789\" fails to match the required pattern: /^[1-9][0-9]{9}$/"
