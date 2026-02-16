@@ -1282,6 +1282,41 @@ components:
               type: string
               description: Questionnaire type
               example: Pre-consultation Survey
+        extension:
+          description: "FHIR extensions for Task resources."
+          type: array
+          items:
+            anyOf: 
+              - description: "Treatment function associated to the Questionnaire. Please note: this must be provided for any \"pifu-triage\" Questionnaires."
+                type: object
+                required:
+                  - url
+                  - valueCoding
+                properties:
+                  url:
+                    type: string
+                    description: URI for the type of extension - in this case a treatment function.
+                    enum:
+                      - "https://fhir.nhs.uk/StructureDefinition/Extension-Task-TreatmentFunction"
+                  valueCoding:
+                    type: object
+                    required:
+                      - system
+                      - code
+                    properties:
+                      system:
+                        type: string
+                        description: Coding system used for the treatment function.
+                        enum: 
+                          - "https://fhir.nhs.uk/CodeSystem/NHSDataModelAndDictionary-treatment-function"
+                      code:
+                        type: string
+                        description: The treatment function code itself.
+                        example: "330"
+                      display:
+                        type: string
+                        description: Display name for the treatment function.
+                        example: "Determatology"
     OperationOutcome:
       description: A FHIR `OperationOutcome` resource containing details of the issues that have occurred.
       type: object
@@ -1781,6 +1816,12 @@ components:
                     code: "CONS-Survey"
                     display: "Consultation Survey"
                 text: "Pre-consultation Survey"
+              extension:
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Task-TreatmentFunction"
+                  valueCoding:
+                    system: "https://fhir.nhs.uk/CodeSystem/NHSDataModelAndDictionary-treatment-function"
+                    code: "330"
+                    display: "Dermatology"
     missingNhsNumber:
       summary: 400 Missing patient:identifier search parameter
       description: No patient:identifier as a search parameter.
