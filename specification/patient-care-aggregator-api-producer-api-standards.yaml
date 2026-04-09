@@ -1305,7 +1305,7 @@ components:
                         type: string
                         description: Coding system used for the treatment function.
                         enum: 
-                          - "https://fhir.nhs.uk/CodeSystem/NHSDataModelAndDictionary-treatment-function"
+                          - "https://fhir.nhs.uk/CodeSystem/Specialty-1"
                       code:
                         type: string
                         description: The treatment function code itself.
@@ -1816,7 +1816,7 @@ components:
               extension:
                 - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Task-TreatmentFunction"
                   valueCoding:
-                    system: "https://fhir.nhs.uk/CodeSystem/NHSDataModelAndDictionary-treatment-function"
+                    system: "https://fhir.nhs.uk/CodeSystem/Specialty-1"
                     code: "330"
                     display: "Dermatology"
     missingNhsNumber:
