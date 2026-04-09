@@ -811,7 +811,6 @@ components:
         - id
         - status
         - subject
-        - period
         - date
         - custodian
         - description
@@ -986,8 +985,6 @@ components:
         period:
           description: "The time period over which the service that is described by the document was provided."
           type: object
-          required:
-            - start
           properties:
             start:
               type: string
