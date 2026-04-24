@@ -91,12 +91,6 @@ class TestEndpoints:
             "typ": "JWT",
             "alg": "RS512",
             "kid": "nhs-login",
-            "sub": "49f470a1-cc52-49b7-beba-0f9cec937c46",
-            "aud": "some-client-id",
-            "iss": "https://internal-dev.api.service.nhs.uk",
-            "exp": 4114224185,
-            "iat": 1623849271,
-            "jti": str(uuid.uuid4()),
         }
         claims = {
             "sub": "49f470a1-cc52-49b7-beba-0f9cec937c46",
