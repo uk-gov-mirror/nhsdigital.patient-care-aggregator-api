@@ -3,7 +3,7 @@
 openapi: '3.0.3'
 info:
   title: "Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard"
-  version: "3.8.0"
+  version: "3.9.0"
   description: |
     ## Overview 
     ![Patient Care Aggregator Get Appointments, Documents and Questionnaires API Standard context diagram](https://digital.nhs.uk/binaries/content/gallery/website/developer/api-catalogue/patient-care-aggregator-fhir-api/patient-care-aggregator-get-appointments-api-standard.svg?raw=true)
@@ -811,7 +811,6 @@ components:
         - id
         - status
         - subject
-        - period
         - date
         - custodian
         - description
@@ -986,8 +985,6 @@ components:
         period:
           description: "The time period over which the service that is described by the document was provided."
           type: object
-          required:
-            - start
           properties:
             start:
               type: string
@@ -1282,6 +1279,41 @@ components:
               type: string
               description: Questionnaire type
               example: Pre-consultation Survey
+        extension:
+          description: "FHIR extensions for Task resources."
+          type: array
+          items:
+            anyOf: 
+              - description: "Treatment function associated to the Questionnaire. Please note: this must be provided for any \"pifu-triage\" Questionnaires."
+                type: object
+                required:
+                  - url
+                  - valueCoding
+                properties:
+                  url:
+                    type: string
+                    description: URI for the type of extension - in this case a treatment function.
+                    enum:
+                      - "https://fhir.nhs.uk/StructureDefinition/Extension-Task-TreatmentFunction"
+                  valueCoding:
+                    type: object
+                    required:
+                      - system
+                      - code
+                    properties:
+                      system:
+                        type: string
+                        description: Coding system used for the treatment function.
+                        enum: 
+                          - "https://fhir.nhs.uk/CodeSystem/Specialty-1"
+                      code:
+                        type: string
+                        description: The treatment function code itself.
+                        example: "330"
+                      display:
+                        type: string
+                        description: Display name for the treatment function.
+                        example: "Determatology"
     OperationOutcome:
       description: A FHIR `OperationOutcome` resource containing details of the issues that have occurred.
       type: object
@@ -1781,6 +1813,12 @@ components:
                     code: "CONS-Survey"
                     display: "Consultation Survey"
                 text: "Pre-consultation Survey"
+              extension:
+                - url: "https://fhir.nhs.uk/StructureDefinition/Extension-Task-TreatmentFunction"
+                  valueCoding:
+                    system: "https://fhir.nhs.uk/CodeSystem/Specialty-1"
+                    code: "330"
+                    display: "Dermatology"
     missingNhsNumber:
       summary: 400 Missing patient:identifier search parameter
       description: No patient:identifier as a search parameter.
